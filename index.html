@@ -3,129 +3,1249 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dr. Ramanaprasanth | Clinical Pharmacist</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<title>IV Compatibility Checker | Clinical Pharmacy SRH</title>
+<meta name="description" content="Hospital IV drug incompatibility and Y-site compatibility reference tool for ICU, pediatrics, neonatal, and oncology settings. No installation required.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  :root{
-    --violet:#2d1b69;
-    --indigo:#180f3e;
-    --cyan:#00e5ff;
-    --magenta:#ff3fa4;
-    --gold:#ffcc33;
-    --mint:#3dffc0;
-    --card-bg: rgba(255,255,255,0.06);
-    --card-border: rgba(255,255,255,0.14);
+  :root {
+    --navy: #0B3D5C;
+    --navy-deep: #082B41;
+    --teal: #1B998B;
+    --teal-deep: #147468;
+    --bg: #F6F8F9;
+    --surface: #FFFFFF;
+    --border: #E1E7EB;
+    --ink: #16232E;
+    --muted: #5B6B76;
+    --compatible: #15803D;
+    --compatible-bg: #EFFAF3;
+    --compatible-border: #BBE8CC;
+    --incompatible: #B91C1C;
+    --incompatible-bg: #FDF0EF;
+    --incompatible-border: #F3C6C1;
+    --caution: #B45309;
+    --caution-bg: #FFF8ED;
+    --caution-border: #F6DDA8;
   }
-
-  *{ box-sizing:border-box; }
-
-  body{
-    margin:0;
-    font-family:'Inter', sans-serif;
-    color:#f1eefc;
-    background: radial-gradient(circle at 20% 10%, #3a1f7a 0%, transparent 45%),
-                radial-gradient(circle at 85% 20%, #7a1fae 0%, transparent 40%),
-                radial-gradient(circle at 50% 90%, #0f7a8c 0%, transparent 45%),
-                linear-gradient(160deg, var(--indigo), #0a0620 70%);
-    background-attachment: fixed;
-    overflow-x:hidden;
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
-
-  h1,h2,h3{ font-family:'Space Grotesk', sans-serif; margin:0; }
-
-  /* ---------- Floating 3D orbs (ambient) ---------- */
-  .orb{
-    position:fixed;
-    border-radius:50%;
-    filter: blur(2px);
-    opacity:0.55;
-    z-index:0;
-    pointer-events:none;
-    animation: float 9s ease-in-out infinite;
+  .mono { font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; }
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+ 
+  header.topbar { background: var(--navy); border-bottom: 1px solid var(--border); }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; }
+  .brand-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--teal); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+  .brand-kicker { font-family: monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); margin: 0; }
+  .brand-title { font-size: 14px; font-weight: 600; color: white; margin: 0; }
+  .topnav { display: flex; gap: 20px; }
+  .topnav button { background: none; border: none; color: rgba(255,255,255,.85); font-size: 14px; font-weight: 500; padding: 4px 0; }
+  .topnav button:hover, .topnav button.active { color: white; border-bottom: 2px solid var(--teal); }
+ 
+  main { padding: 32px 0 60px; }
+  .intro { max-width: 640px; margin-bottom: 28px; }
+  .kicker { font-family: monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); margin: 0 0 8px; }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 8px; line-height: 1.25; }
+  .lede { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.6; }
+ 
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px; box-shadow: 0 1px 2px rgba(11,61,92,.06), 0 4px 16px rgba(11,61,92,.06); }
+  .search-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+  .field { flex: 1; min-width: 220px; position: relative; }
+  .field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 6px; }
+  .input-wrap { position: relative; }
+  .input-wrap svg.icon-search { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .field input[type=text], .field input[type=search] {
+    width: 100%; padding: 10px 34px 10px 34px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; color: var(--ink); background: white;
   }
-  .orb1{ width:120px; height:120px; top:8%; left:6%;
-    background: radial-gradient(circle at 30% 30%, var(--cyan), #003b47 75%);
-    box-shadow:0 0 60px var(--cyan); animation-delay:0s; }
-  .orb2{ width:90px; height:90px; top:65%; left:88%;
-    background: radial-gradient(circle at 30% 30%, var(--magenta), #4a0030 75%);
-    box-shadow:0 0 60px var(--magenta); animation-delay:2s; }
-  .orb3{ width:70px; height:70px; top:80%; left:10%;
-    background: radial-gradient(circle at 30% 30%, var(--gold), #4a3900 75%);
-    box-shadow:0 0 50px var(--gold); animation-delay:4s; }
-  .orb4{ width:55px; height:55px; top:15%; left:80%;
-    background: radial-gradient(circle at 30% 30%, var(--mint), #003a2b 75%);
-    box-shadow:0 0 40px var(--mint); animation-delay:1s; }
-
-  @keyframes float{
-    0%,100%{ transform:translateY(0) translateX(0) rotate(0deg); }
-    50%{ transform:translateY(-35px) translateX(15px) rotate(12deg); }
+  .field input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(27,153,139,.15); }
+  .clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); padding: 3px; border-radius: 4px; display: none; }
+  .clear-btn:hover { background: var(--bg); }
+  .connector { color: var(--muted); padding-bottom: 10px; }
+  .go-btn {
+    height: 42px; padding: 0 26px; background: var(--teal); color: white; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; white-space: nowrap;
   }
-
-  /* ---------- Header / Hero ---------- */
-  header{
-    position:relative;
-    z-index:2;
-    text-align:center;
-    padding:100px 20px 70px;
-    perspective:1000px;
+  .go-btn:hover { background: var(--teal-deep); }
+  .go-btn:disabled { opacity: .5; cursor: not-allowed; }
+ 
+  .suggestions { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 8px rgba(11,61,92,.08); max-height: 260px; overflow: auto; display: none; }
+  .suggestions.open { display: block; }
+  .suggestions button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 12px; }
+  .suggestions button:hover, .suggestions button.active { background: var(--bg); }
+  .sugg-name { font-size: 14px; font-weight: 500; color: var(--ink); display: block; }
+  .sugg-meta { font-size: 12px; color: var(--muted); display: block; margin-top: 1px; }
+ 
+  .filters { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .filters-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-right: 4px; }
+  .pill { border: 1px solid var(--border); background: white; color: var(--muted); border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 500; }
+  .pill:hover { border-color: var(--teal); color: var(--teal); }
+  .pill.active { border-color: var(--navy); background: var(--navy); color: white; }
+ 
+  .result-area { margin-top: 28px; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; border: 1px dashed var(--border); background: white; border-radius: 10px; padding: 56px 24px; text-align: center; }
+  .empty-icon { width: 44px; height: 44px; border-radius: 999px; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .empty-title { font-size: 14px; font-weight: 600; margin: 0; }
+  .empty-desc { font-size: 14px; color: var(--muted); margin: 0; max-width: 380px; }
+ 
+  .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 2px rgba(11,61,92,.06), 0 4px 16px rgba(11,61,92,.06); border: 1px solid var(--border); }
+  .card-bar { height: 6px; width: 100%; }
+  .card-bar.compatible { background: var(--compatible); }
+  .card-bar.incompatible { background: var(--incompatible); }
+  .card-bar.caution { background: var(--caution); }
+  .card-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 20px; border-bottom: 1px solid var(--border); }
+  .card-head.compatible { background: var(--compatible-bg); border-color: var(--compatible-border); }
+  .card-head.incompatible { background: var(--incompatible-bg); border-color: var(--incompatible-border); }
+  .card-head.caution { background: var(--caution-bg); border-color: var(--caution-border); }
+  .card-head-kicker { display: flex; align-items: center; gap: 6px; font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+  .card-title { font-size: 20px; font-weight: 600; margin: 0; }
+  .card-title .plus { color: var(--muted); font-weight: 400; }
+  .card-status-line { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; margin: 6px 0 0; flex-wrap: wrap; }
+  .card-status-line.compatible { color: var(--compatible); }
+  .card-status-line.incompatible { color: var(--incompatible); }
+  .card-status-line.caution { color: var(--caution); }
+  .card-status-line .extra { color: var(--muted); font-weight: 400; }
+  .card-actions { display: flex; align-items: center; gap: 16px; }
+  .btn-group { display: flex; flex-direction: column; gap: 8px; }
+  .btn-solid, .btn-outline { display: flex; align-items: center; gap: 6px; border-radius: 6px; padding: 9px 14px; font-size: 12px; font-weight: 600; border: none; }
+  .btn-solid { background: var(--navy); color: white; }
+  .btn-solid:hover { background: var(--navy-deep); }
+  .btn-outline { background: white; border: 1px solid var(--border); color: var(--ink); }
+  .btn-outline:hover { border-color: var(--teal); }
+ 
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .gauge-pct { font-family: monospace; font-size: 18px; font-weight: 600; }
+  .gauge-label { font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+ 
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; padding: 20px; }
+  @media (max-width: 720px) { .card-body { grid-template-columns: 1fr; } }
+  .detail-row { padding: 12px 0; border-top: 1px solid rgba(225,231,235,.7); }
+  .detail-row:first-child { border-top: none; padding-top: 0; }
+  .detail-label { font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+  .detail-value { font-size: 14px; line-height: 1.6; margin: 0; }
+  .detail-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { border: 1px solid var(--border); background: var(--bg); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+  .ref-list, .note-list { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12px; color: var(--muted); }
+  .ref-list li, .note-list li { margin-bottom: 4px; }
+  .ref-source { font-weight: 500; color: var(--ink); }
+ 
+  .card-foot { border-top: 1px solid var(--border); background: var(--bg); padding: 10px 20px; font-family: monospace; font-size: 11px; color: var(--muted); }
+ 
+  footer.site-footer { border-top: 1px solid var(--border); background: white; margin-top: 60px; }
+  .site-footer .wrap { padding: 24px 20px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+ 
+  /* Admin */
+  .admin-gate { max-width: 380px; margin: 60px auto; text-align: center; }
+  .admin-gate .lock-icon { width: 44px; height: 44px; border-radius: 999px; background: var(--navy); display: flex; align-items: center; justify-content: center; color: white; margin: 0 auto 16px; }
+  .admin-gate h1 { font-size: 18px; margin: 0 0 4px; }
+  .admin-gate p { font-size: 14px; color: var(--muted); margin: 0 0 22px; }
+  .admin-gate input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+  .admin-gate button { width: 100%; padding: 10px; background: var(--teal); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; }
+ 
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  table.admin-table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 14px; }
+  table.admin-table th { background: var(--bg); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; color: var(--muted); text-align: left; padding: 10px 14px; }
+  table.admin-table td { padding: 10px 14px; border-top: 1px solid var(--border); }
+  table.admin-table tr:hover td { background: #FAFBFC; }
+  .icon-btn { background: none; border: none; padding: 6px; border-radius: 6px; color: var(--muted); }
+  .icon-btn:hover { background: var(--bg); color: var(--teal); }
+  .icon-btn.danger:hover { background: var(--incompatible-bg); color: var(--incompatible); }
+ 
+  .form-panel { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px; }
+  .form-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 640px) { .form-grid, .form-grid.cols-4 { grid-template-columns: 1fr; } }
+  .form-panel label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  .form-panel input, .form-panel select, .form-panel textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-family: inherit;
   }
-
-  .capsule-wrap{
-    width:130px; height:130px;
-    margin:0 auto 30px;
-    perspective:800px;
+  .form-panel textarea { resize: vertical; }
+  .form-panel input:focus, .form-panel select:focus, .form-panel textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(27,153,139,.15); }
+  .field-block { margin-bottom: 14px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .checkbox-row input { width: auto; }
+  .ref-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .ref-row select { flex: 0 0 190px; }
+  .form-footer { display: flex; align-items: center; gap: 14px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 6px; }
+  .link-btn { background: none; border: none; color: var(--muted); font-size: 14px; font-weight: 500; }
+  .link-btn:hover { color: var(--ink); }
+  .add-link { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--teal); font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+ 
+  .no-print { }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white !important; }
+    .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+    main { padding: 0; }
   }
-  .capsule{
-    width:100%; height:100%;
-    position:relative;
-    transform-style:preserve-3d;
-    animation: spin 7s linear infinite;
+</style>
+</head>
+<body>
+ 
+<header class="topbar no-print">
+  <div class="wrap topbar-inner">
+    <a class="brand" onclick="showView('checker')">
+      <span class="brand-icon">Rx</span>
+      <span>
+        <p class="brand-kicker">Clinical Pharmacy SRH</p>
+        <p class="brand-title">IV Compatibility Checker</p>
+      </span>
+    </a>
+    <nav class="topnav">
+      <button id="nav-checker" class="active" onclick="showView('checker')">Checker</button>
+      <button id="nav-admin" onclick="showView('admin')">Admin</button>
+    </nav>
+  </div>
+</header>
+ 
+<main>
+  <div class="wrap">
+ 
+    <!-- CHECKER VIEW -->
+    <section id="view-checker">
+      <div class="intro no-print">
+        <p class="kicker">Hospital IV admixture reference &middot; runs offline, no install</p>
+        <h1>Check IV drug compatibility before you mix, push, or Y-site.</h1>
+        <p class="lede">Search one drug for its general profile, or two drugs to check physical, chemical, and therapeutic compatibility with an evidence-based confidence score.</p>
+      </div>
+ 
+      <form class="panel no-print" id="search-form">
+        <div class="search-row">
+          <div class="field" id="field-a">
+            <label for="drugA">Drug 1</label>
+            <div class="input-wrap">
+              <svg class="icon-search" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="drugA" placeholder="e.g., Ceftriaxone" autocomplete="off">
+              <button type="button" class="clear-btn" data-clear="drugA">&times;</button>
+            </div>
+            <div class="suggestions" id="suggest-drugA"></div>
+          </div>
+          <div class="connector">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-4 4"/><path d="M21 7H3"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h18"/></svg>
+          </div>
+          <div class="field" id="field-b">
+            <label for="drugB">Drug 2 (optional)</label>
+            <div class="input-wrap">
+              <svg class="icon-search" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="drugB" placeholder="e.g., Calcium Gluconate" autocomplete="off">
+              <button type="button" class="clear-btn" data-clear="drugB">&times;</button>
+            </div>
+            <div class="suggestions" id="suggest-drugB"></div>
+          </div>
+          <button type="submit" class="go-btn" id="go-btn" disabled>Check Compatibility</button>
+        </div>
+ 
+        <div class="filters">
+          <span class="filters-label">Care setting</span>
+          <button type="button" class="pill active" data-setting="all">All settings</button>
+          <button type="button" class="pill" data-setting="icu">ICU</button>
+          <button type="button" class="pill" data-setting="pediatrics">Pediatrics</button>
+          <button type="button" class="pill" data-setting="neonates">Neonates</button>
+          <button type="button" class="pill" data-setting="oncology">Oncology</button>
+        </div>
+      </form>
+ 
+      <div class="result-area" id="result-area">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="8" x2="14" y2="14"/></svg>
+          </div>
+          <p class="empty-title">No search yet</p>
+          <p class="empty-desc">Enter one or two IV drugs above and select Check Compatibility to see the full clinical profile.</p>
+        </div>
+      </div>
+    </section>
+ 
+    <!-- ADMIN VIEW -->
+    <section id="view-admin" style="display:none;"></section>
+ 
+  </div>
+</main>
+ 
+<footer class="site-footer no-print">
+  <div class="wrap">
+    This tool is a clinical decision-support reference for hospital pharmacy and nursing staff. It does not replace pharmacist judgment, your institution's approved protocols, or primary literature (Trissel's Handbook on Injectable Drugs, King Guide to Parenteral Admixtures, Micromedex, ASHP guidance). Always verify high-risk combinations before administration. Runs entirely in your browser &mdash; no server, no installation, no internet connection required after first load (except the PDF export library).
+  </div>
+</footer>
+ 
+<script>
+// ============================================================
+// DATA (embedded - edit directly here, or use the Admin panel)
+// ============================================================
+ 
+var DRUGS = [
+  { id: "ceftriaxone", name: "Ceftriaxone", aliases: ["Rocephin"], drugClass: "Cephalosporin antibiotic" },
+  { id: "calcium-gluconate", name: "Calcium Gluconate", aliases: ["Calcium"], drugClass: "Electrolyte" },
+  { id: "calcium-chloride", name: "Calcium Chloride", aliases: [], drugClass: "Electrolyte" },
+  { id: "phenytoin", name: "Phenytoin", aliases: ["Dilantin"], drugClass: "Anticonvulsant" },
+  { id: "furosemide", name: "Furosemide", aliases: ["Lasix"], drugClass: "Loop diuretic" },
+  { id: "vancomycin", name: "Vancomycin", aliases: ["Vancocin"], drugClass: "Glycopeptide antibiotic" },
+  { id: "heparin", name: "Heparin Sodium", aliases: ["Heparin"], drugClass: "Anticoagulant" },
+  { id: "amiodarone", name: "Amiodarone", aliases: ["Cordarone"], drugClass: "Antiarrhythmic" },
+  { id: "sodium-bicarbonate", name: "Sodium Bicarbonate", aliases: ["Bicarb"], drugClass: "Alkalinizing agent" },
+  { id: "dopamine", name: "Dopamine", aliases: ["Intropin"], drugClass: "Vasopressor / inotrope" },
+  { id: "propofol", name: "Propofol", aliases: ["Diprivan"], drugClass: "Sedative-hypnotic" },
+  { id: "diazepam", name: "Diazepam", aliases: ["Valium"], drugClass: "Benzodiazepine" },
+  { id: "midazolam", name: "Midazolam", aliases: ["Versed"], drugClass: "Benzodiazepine" },
+  { id: "insulin-regular", name: "Insulin Regular (Human)", aliases: ["Insulin"], drugClass: "Antidiabetic hormone" },
+  { id: "piperacillin-tazobactam", name: "Piperacillin-Tazobactam", aliases: ["Zosyn"], drugClass: "Penicillin/beta-lactamase inhibitor" },
+  { id: "gentamicin", name: "Gentamicin", aliases: [], drugClass: "Aminoglycoside antibiotic" },
+  { id: "magnesium-sulfate", name: "Magnesium Sulfate", aliases: ["MgSO4"], drugClass: "Electrolyte" },
+  { id: "potassium-chloride", name: "Potassium Chloride", aliases: ["KCl"], drugClass: "Electrolyte" },
+  { id: "ondansetron", name: "Ondansetron", aliases: ["Zofran"], drugClass: "Antiemetic (5-HT3 antagonist)" },
+  { id: "norepinephrine", name: "Norepinephrine", aliases: ["Levophed"], drugClass: "Vasopressor" },
+  { id: "dexamethasone", name: "Dexamethasone", aliases: ["Decadron"], drugClass: "Corticosteroid" },
+  { id: "pantoprazole", name: "Pantoprazole", aliases: ["Protonix"], drugClass: "Proton pump inhibitor" },
+  { id: "metronidazole", name: "Metronidazole", aliases: ["Flagyl"], drugClass: "Antibiotic (nitroimidazole)" },
+  { id: "labetalol", name: "Labetalol", aliases: ["Trandate"], drugClass: "Beta-blocker" },
+  { id: "morphine", name: "Morphine Sulfate", aliases: [], drugClass: "Opioid analgesic" },
+  { id: "cisplatin", name: "Cisplatin", aliases: [], drugClass: "Antineoplastic (alkylating-like)" },
+  { id: "doxorubicin", name: "Doxorubicin", aliases: ["Adriamycin"], drugClass: "Antineoplastic (anthracycline)" },
+  { id: "mannitol", name: "Mannitol", aliases: [], drugClass: "Osmotic diuretic" },
+  { id: "total-parenteral-nutrition", name: "Total Parenteral Nutrition (TPN)", aliases: ["TPN", "3-in-1"], drugClass: "Nutrition admixture" },
+  { id: "sodium-chloride-0.9", name: "Sodium Chloride 0.9%", aliases: ["Normal Saline", "NS"], drugClass: "IV fluid / diluent" },
+];
+ 
+// Starter clinical dataset. This is a general-education reference derived
+// from widely known IV compatibility principles. It is NOT a substitute for
+// Trissel's Handbook on Injectable Drugs, King Guide, Micromedex, or your
+// institution's own P&T-approved protocols, and record-level confidence
+// scores should be reviewed by a pharmacist before clinical use. Extend or
+// correct via the admin panel.
+var SEED_INTERACTIONS = [
+  {
+    id: "ceftriaxone_calcium-gluconate",
+    drugA: "Ceftriaxone",
+    drugB: "Calcium Gluconate",
+    status: "incompatible",
+    confidenceScore: 97,
+    type: "chemical",
+    severity: "major",
+    mechanism:
+      "Ceftriaxone can form an insoluble ceftriaxone-calcium precipitate. Reports of fatal precipitates in neonatal lungs and kidneys led to a black-box style warning against co-administration of ceftriaxone with calcium-containing IV solutions, even via different lines/sites, in neonates.",
+    recommendedAction:
+      "Do not co-administer ceftriaxone and any calcium-containing IV product in neonates (≤28 days), regardless of infusion site or line. In older patients, avoid simultaneous Y-site administration; if both are required, use separate lines, separate sites, and flush thoroughly between infusions.",
+    alternativeAdministration:
+      "Space doses and use separate IV access; consider an alternative cephalosporin (e.g., cefotaxime) in neonates and small infants who require IV calcium.",
+    flushRecommendation:
+      "Flush the line with at least 10-20 mL of 0.9% Sodium Chloride or 5% Dextrose before and after each drug if sequential administration on the same line is unavoidable in non-neonatal patients.",
+    ySiteCompatible: false,
+    ySiteNotes: "Contraindicated at Y-site in all age groups; absolute contraindication in neonates even on separate lines.",
+    concentrationDependent: true,
+    concentrationNotes: [
+      { drug: "Ceftriaxone", concentration: "Higher concentrations", note: "Increase precipitation risk" },
+      { drug: "Calcium Gluconate", concentration: "Higher concentrations", note: "Increase precipitation risk" },
+    ],
+    careSettings: ["neonates", "pediatrics", "icu", "general"],
+    careSettingNotes: {
+      neonates: "Absolute contraindication - do not co-administer via any route within 48 hours of each other.",
+      pediatrics: "Avoid concurrent administration; use separate lines and confirm timing with pharmacy.",
+    },
+    references: [
+      { source: "ASHP", citation: "Ceftriaxone-calcium precipitation safety communication", year: 2009 },
+      { source: "Trissel's IV Compatibility", citation: "Ceftriaxone monograph" },
+      { source: "Micromedex", citation: "Ceftriaxone drug interaction data" },
+    ],
+    lastReviewed: "2025-11-01",
+  },
+  {
+    id: "phenytoin_dextrose-5",
+    drugA: "Phenytoin",
+    drugB: "Sodium Chloride 0.9%",
+    status: "caution",
+    confidenceScore: 80,
+    type: "physical",
+    severity: "moderate",
+    mechanism:
+      "Phenytoin is highly pH-dependent and prone to precipitation in solutions with pH below ~11.5. It is formulated in a propylene glycol/ethanol vehicle and precipitates when diluted in most IV fluids, particularly dextrose-containing solutions.",
+    recommendedAction:
+      "Administer phenytoin as a slow IV push through a dedicated line, or dilute only in 0.9% Sodium Chloride (never dextrose) and use an in-line filter, infusing immediately after preparation.",
+    alternativeAdministration:
+      "Prefer fosphenytoin where available, as it is water-soluble and compatible with a wider range of diluents and infusion rates.",
+    flushRecommendation:
+      "Flush line with 0.9% Sodium Chloride before and after administration; never flush with dextrose-containing fluids.",
+    ySiteCompatible: "conditional",
+    ySiteNotes: "Avoid Y-site with most drugs; compatibility is highly diluent- and concentration-dependent.",
+    concentrationDependent: true,
+    concentrationNotes: [
+      { drug: "Phenytoin", concentration: "> 6.7 mg/mL in NS", note: "Increased precipitation risk; use inline filter" },
+    ],
+    careSettings: ["icu", "pediatrics", "general"],
+    references: [
+      { source: "Trissel's IV Compatibility", citation: "Phenytoin monograph" },
+      { source: "King Guide to Parenteral Admixtures", citation: "Phenytoin sodium" },
+    ],
+    lastReviewed: "2025-10-12",
+  },
+  {
+    id: "vancomycin_heparin",
+    drugA: "Vancomycin",
+    drugB: "Heparin Sodium",
+    status: "incompatible",
+    confidenceScore: 85,
+    type: "chemical",
+    severity: "moderate",
+    mechanism:
+      "Vancomycin is a cationic glycopeptide that can complex with anionic heparin, forming a visible precipitate; the risk rises with higher concentrations of either agent.",
+    recommendedAction:
+      "Avoid Y-site co-infusion. If a central line is heparin-locked, flush thoroughly with 0.9% Sodium Chloride before and after vancomycin administration.",
+    alternativeAdministration:
+      "Use a separate lumen for vancomycin on multi-lumen central catheters when a heparin infusion is running.",
+    flushRecommendation:
+      "Flush with 10-20 mL 0.9% Sodium Chloride before and after vancomycin infusion when sharing a line.",
+    ySiteCompatible: false,
+    concentrationDependent: true,
+    careSettings: ["icu", "general"],
+    references: [
+      { source: "Trissel's IV Compatibility", citation: "Vancomycin-heparin monograph" },
+      { source: "Micromedex", citation: "Vancomycin IV compatibility data" },
+    ],
+    lastReviewed: "2025-09-20",
+  },
+  {
+    id: "furosemide_midazolam",
+    drugA: "Furosemide",
+    drugB: "Midazolam",
+    status: "incompatible",
+    confidenceScore: 88,
+    type: "physical",
+    severity: "moderate",
+    mechanism:
+      "Furosemide is formulated at an alkaline pH while midazolam injection is formulated at an acidic pH; mixing the two shifts pH toward precipitation of midazolam free base.",
+    recommendedAction:
+      "Do not mix in the same syringe or Y-site. Administer through separate lines or sequentially with a thorough flush.",
+    alternativeAdministration: "Give as separate, sequential IV push/infusions on different access if only one lumen is available.",
+    flushRecommendation: "Flush with 0.9% Sodium Chloride between administrations.",
+    ySiteCompatible: false,
+    concentrationDependent: false,
+    careSettings: ["icu", "general"],
+    references: [{ source: "Trissel's IV Compatibility", citation: "Furosemide monograph" }],
+    lastReviewed: "2025-08-15",
+  },
+  {
+    id: "dopamine_sodium-bicarbonate",
+    drugA: "Dopamine",
+    drugB: "Sodium Bicarbonate",
+    status: "incompatible",
+    confidenceScore: 90,
+    type: "chemical",
+    severity: "major",
+    mechanism:
+      "Alkaline solutions such as sodium bicarbonate rapidly inactivate catecholamines like dopamine through oxidation, degrading potency and risking sub-therapeutic vasopressor effect.",
+    recommendedAction: "Never mix or co-infuse in the same line. Use completely separate IV access for vasopressor infusions.",
+    alternativeAdministration: "Run dopamine on a dedicated, clearly labeled central line; administer bicarbonate through a separate lumen.",
+    flushRecommendation: "If sequential use on the same line is unavoidable in an emergency, flush thoroughly with 0.9% Sodium Chloride first.",
+    ySiteCompatible: false,
+    concentrationDependent: false,
+    careSettings: ["icu"],
+    careSettingNotes: { icu: "Common bedside error during codes - keep pressor lines dedicated and clearly labeled." },
+    references: [
+      { source: "Trissel's IV Compatibility", citation: "Dopamine monograph" },
+      { source: "ASHP", citation: "Vasopressor administration safety guidance" },
+    ],
+    lastReviewed: "2025-07-05",
+  },
+  {
+    id: "propofol_midazolam",
+    drugA: "Propofol",
+    drugB: "Midazolam",
+    status: "compatible",
+    confidenceScore: 82,
+    type: "physical",
+    severity: "minor",
+    mechanism:
+      "Both agents are commonly co-administered for procedural sedation; published Y-site compatibility studies show no visible precipitate or significant potency loss over short infusion periods.",
+    recommendedAction: "Y-site co-administration is acceptable for short-term sedation with standard monitoring.",
+    alternativeAdministration: "No alternative route typically required; continue standard sedation monitoring protocols.",
+    flushRecommendation: "Routine line flush with 0.9% Sodium Chloride at the end of sedation is sufficient.",
+    ySiteCompatible: true,
+    concentrationDependent: false,
+    careSettings: ["icu", "general"],
+    references: [{ source: "Published Study", citation: "Propofol-midazolam Y-site compatibility study" }],
+    lastReviewed: "2025-06-18",
+  },
+  {
+    id: "piperacillin-tazobactam_gentamicin",
+    drugA: "Piperacillin-Tazobactam",
+    drugB: "Gentamicin",
+    status: "incompatible",
+    confidenceScore: 92,
+    type: "chemical",
+    severity: "major",
+    mechanism:
+      "Penicillins, including piperacillin-tazobactam, can chemically inactivate aminoglycosides such as gentamicin through covalent binding when mixed together, especially in renal-impaired patients or on standing.",
+    recommendedAction: "Never mix in the same syringe, bag, or Y-site. Administer through separate lines with adequate temporal separation.",
+    alternativeAdministration: "Infuse piperacillin-tazobactam and gentamicin on separate lumens; if only one lumen is available, separate by at least 1 hour with a flush between.",
+    flushRecommendation: "Flush with 10-20 mL 0.9% Sodium Chloride between infusions.",
+    ySiteCompatible: false,
+    concentrationDependent: false,
+    careSettings: ["icu", "pediatrics", "neonates", "general"],
+    careSettingNotes: { neonates: "Inactivation risk is heightened with prolonged contact time - avoid any shared line." },
+    references: [
+      { source: "Trissel's IV Compatibility", citation: "Piperacillin-aminoglycoside monograph" },
+      { source: "King Guide to Parenteral Admixtures", citation: "Aminoglycoside compatibility" },
+    ],
+    lastReviewed: "2025-11-20",
+  },
+  {
+    id: "magnesium-sulfate_calcium-gluconate",
+    drugA: "Magnesium Sulfate",
+    drugB: "Calcium Gluconate",
+    status: "caution",
+    confidenceScore: 75,
+    type: "therapeutic",
+    severity: "moderate",
+    mechanism:
+      "Magnesium and calcium are physically compatible in most diluents at standard concentrations, but calcium is the clinical antidote for magnesium toxicity, so co-infusion can mask or blunt therapeutic monitoring of either electrolyte's effect.",
+    recommendedAction: "Physical Y-site mixing is generally acceptable at usual concentrations, but confirm the clinical indication for concurrent use and monitor levels closely, particularly in pre-eclampsia management or neuromuscular monitoring.",
+    alternativeAdministration: "If calcium is being given specifically as a magnesium toxicity antidote, use a separate line so titration of each is clear.",
+    flushRecommendation: "Standard flush between bags is sufficient if physically compatible per institutional data.",
+    ySiteCompatible: "conditional",
+    concentrationDependent: true,
+    careSettings: ["icu", "oncology", "general"],
+    references: [{ source: "Micromedex", citation: "Magnesium sulfate compatibility data" }],
+    lastReviewed: "2025-05-02",
+  },
+  {
+    id: "amiodarone_sodium-chloride-0.9",
+    drugA: "Amiodarone",
+    drugB: "Sodium Chloride 0.9%",
+    status: "caution",
+    confidenceScore: 78,
+    type: "physical",
+    severity: "moderate",
+    mechanism:
+      "Amiodarone premix is stable in Dextrose 5% but shows reduced physical stability and greater adsorption to PVC tubing when diluted in 0.9% Sodium Chloride at low concentrations; also prone to precipitation when mixed at Y-site with alkaline or high-pH drugs.",
+    recommendedAction: "Prefer Dextrose 5% as the diluent per manufacturer labeling. Use non-PVC (polyolefin) tubing/bags where available for prolonged infusions.",
+    alternativeAdministration: "Administer through a dedicated central line for infusions exceeding 1 hour; use in-line filter per institutional protocol.",
+    flushRecommendation: "Flush thoroughly with the same diluent (D5W) before and after co-administered medications.",
+    ySiteCompatible: "conditional",
+    ySiteNotes: "Compatible with many common ICU drugs at Y-site, but verify against your institution's IV compatibility chart drug-by-drug.",
+    concentrationDependent: true,
+    concentrationNotes: [{ drug: "Amiodarone", concentration: "< 2 mg/mL in NS", note: "Reduced stability reported" }],
+    careSettings: ["icu", "general"],
+    references: [
+      { source: "Trissel's IV Compatibility", citation: "Amiodarone monograph" },
+      { source: "ASHP", citation: "Amiodarone IV administration guidance" },
+    ],
+    lastReviewed: "2025-10-30",
+  },
+  {
+    id: "insulin-regular_total-parenteral-nutrition",
+    drugA: "Insulin Regular (Human)",
+    drugB: "Total Parenteral Nutrition (TPN)",
+    status: "caution",
+    confidenceScore: 70,
+    type: "physical",
+    severity: "moderate",
+    mechanism:
+      "Regular insulin can be added directly to TPN admixtures, but a variable proportion adsorbs to the plastic bag and tubing, making the effective delivered dose less predictable than IV push or a separate infusion.",
+    recommendedAction: "If added to TPN, use consistent bag/tubing material and monitor glucose closely; many institutions prefer a separate, titratable insulin infusion for tighter control.",
+    alternativeAdministration: "Run insulin as a separate infusion via syringe pump for patients needing frequent dose titration (e.g., ICU glycemic protocols).",
+    flushRecommendation: "Not applicable when infused within the TPN admixture; prime separate tubing fully if run independently to account for adsorption.",
+    ySiteCompatible: "not-applicable",
+    concentrationDependent: true,
+    careSettings: ["icu", "general"],
+    references: [{ source: "King Guide to Parenteral Admixtures", citation: "Insulin-TPN admixture data" }],
+    lastReviewed: "2025-04-11",
+  },
+  {
+    id: "cisplatin_sodium-chloride-0.9",
+    drugA: "Cisplatin",
+    drugB: "Sodium Chloride 0.9%",
+    status: "compatible",
+    confidenceScore: 93,
+    type: "chemical",
+    severity: "minor",
+    mechanism:
+      "Cisplatin requires a chloride-containing diluent (0.9% Sodium Chloride) to remain stable; low-chloride solutions such as Dextrose 5% in water accelerate aquation and degradation of the compound.",
+    recommendedAction: "Dilute and infuse only in 0.9% Sodium Chloride (with or without added magnesium/mannitol per protocol); avoid dextrose-only diluents.",
+    alternativeAdministration: "Follow institutional chemotherapy hydration protocol; pre- and post-hydration with normal saline is standard.",
+    flushRecommendation: "Flush line with 0.9% Sodium Chloride before and after infusion; use a dedicated line per chemotherapy safe-handling policy.",
+    ySiteCompatible: "conditional",
+    ySiteNotes: "Avoid Y-site with drugs requiring alkaline or dextrose-based diluents; verify institutional oncology compatibility chart.",
+    concentrationDependent: true,
+    careSettings: ["oncology", "icu"],
+    careSettingNotes: { oncology: "Use closed-system transfer devices and follow hazardous drug handling precautions." },
+    references: [
+      { source: "Trissel's IV Compatibility", citation: "Cisplatin monograph" },
+      { source: "ASHP", citation: "Cisplatin handling and administration guidance" },
+    ],
+    lastReviewed: "2025-09-02",
+  },
+  {
+    id: "doxorubicin_sodium-bicarbonate",
+    drugA: "Doxorubicin",
+    drugB: "Sodium Bicarbonate",
+    status: "incompatible",
+    confidenceScore: 86,
+    type: "chemical",
+    severity: "major",
+    mechanism:
+      "Doxorubicin is unstable at alkaline pH and degrades rapidly (color change/precipitation) when exposed to bicarbonate or other alkaline solutions.",
+    recommendedAction: "Never mix or co-infuse with alkaline solutions. Prepare and administer per vesicant/hazardous drug handling protocol on a dedicated line.",
+    alternativeAdministration: "Use a dedicated central line; if extravasation risk is a concern, follow institutional vesicant extravasation protocol rather than altering diluent.",
+    flushRecommendation: "Flush with 0.9% Sodium Chloride or D5W before and after infusion; never flush with bicarbonate-containing fluids.",
+    ySiteCompatible: false,
+    concentrationDependent: false,
+    careSettings: ["oncology"],
+    careSettingNotes: { oncology: "Vesicant - confirm line patency before infusion and monitor closely for extravasation." },
+    references: [{ source: "Trissel's IV Compatibility", citation: "Doxorubicin monograph" }],
+    lastReviewed: "2025-03-22",
+  },
+  {
+    id: "morphine_ondansetron",
+    drugA: "Morphine Sulfate",
+    drugB: "Ondansetron",
+    status: "compatible",
+    confidenceScore: 84,
+    type: "physical",
+    severity: "minor",
+    mechanism:
+      "Commonly co-administered for pain and nausea management (e.g., PCA settings, post-operative care); published Y-site studies show no visible incompatibility at usual clinical concentrations.",
+    recommendedAction: "Y-site co-administration is acceptable at standard concentrations; monitor for sedation given morphine's CNS depressant effect combined with ondansetron.",
+    alternativeAdministration: "No special alternative route required for standard dosing.",
+    flushRecommendation: "Routine flush with 0.9% Sodium Chloride is sufficient between unrelated infusions.",
+    ySiteCompatible: true,
+    concentrationDependent: false,
+    careSettings: ["icu", "oncology", "general", "pediatrics"],
+    references: [{ source: "Trissel's IV Compatibility", citation: "Morphine-ondansetron Y-site data" }],
+    lastReviewed: "2025-02-14",
+  },
+  {
+    id: "potassium-chloride_insulin-regular",
+    drugA: "Potassium Chloride",
+    drugB: "Insulin Regular (Human)",
+    status: "caution",
+    confidenceScore: 72,
+    type: "therapeutic",
+    severity: "moderate",
+    mechanism:
+      "No direct physical/chemical incompatibility, but insulin drives potassium intracellularly; concurrent or sequential administration (e.g., in DKA management) requires tight coordination to avoid rebound hypokalemia or hyperkalemia.",
+    recommendedAction: "Physically compatible for co-infusion where clinically indicated (e.g., DKA protocols), but monitor serum potassium closely and adjust per institutional protocol.",
+    alternativeAdministration: "Use protocol-driven, separately titratable infusions in DKA management so each can be adjusted independently.",
+    flushRecommendation: "Standard flush practice applies; no special flush requirement beyond routine line care.",
+    ySiteCompatible: true,
+    concentrationDependent: true,
+    careSettings: ["icu", "pediatrics", "general"],
+    references: [{ source: "Micromedex", citation: "Potassium chloride-insulin coordination guidance" }],
+    lastReviewed: "2025-01-19",
+  },
+  {
+    id: "norepinephrine_sodium-bicarbonate",
+    drugA: "Norepinephrine",
+    drugB: "Sodium Bicarbonate",
+    status: "incompatible",
+    confidenceScore: 89,
+    type: "chemical",
+    severity: "major",
+    mechanism:
+      "Like other catecholamines, norepinephrine is rapidly oxidized and inactivated in alkaline solutions such as sodium bicarbonate, reducing vasopressor potency unpredictably.",
+    recommendedAction: "Never mix or co-infuse in the same line. Use dedicated, clearly labeled vasopressor access.",
+    alternativeAdministration: "Administer bicarbonate through a separate lumen or peripheral line distinct from the norepinephrine infusion.",
+    flushRecommendation: "Flush thoroughly with 0.9% Sodium Chloride if line sharing is unavoidable in an emergency.",
+    ySiteCompatible: false,
+    concentrationDependent: false,
+    careSettings: ["icu"],
+    references: [{ source: "Trissel's IV Compatibility", citation: "Norepinephrine monograph" }],
+    lastReviewed: "2025-06-30",
+  },
+  {
+    id: "pantoprazole_multivitamin",
+    drugA: "Pantoprazole",
+    drugB: "Sodium Chloride 0.9%",
+    status: "compatible",
+    confidenceScore: 91,
+    type: "physical",
+    severity: "minor",
+    mechanism:
+      "Pantoprazole is stable when reconstituted and diluted in 0.9% Sodium Chloride within the manufacturer-specified concentration and time window.",
+    recommendedAction: "Administer as a standalone infusion in 0.9% Sodium Chloride within the stability window (typically infuse within a few hours of reconstitution).",
+    alternativeAdministration: "No alternative administration route typically required for standard dosing.",
+    flushRecommendation: "Flush line before and after with 0.9% Sodium Chloride, especially before/after co-administered incompatible drugs.",
+    ySiteCompatible: "conditional",
+    ySiteNotes: "Avoid Y-site with drugs requiring acidic diluents; verify institutional chart for specific pairs.",
+    concentrationDependent: true,
+    careSettings: ["icu", "general"],
+    references: [{ source: "ASHP", citation: "Pantoprazole IV stability data" }],
+    lastReviewed: "2025-07-27",
+  },
+  {
+    id: "labetalol_furosemide",
+    drugA: "Labetalol",
+    drugB: "Furosemide",
+    status: "caution",
+    confidenceScore: 65,
+    type: "physical",
+    severity: "minor",
+    mechanism:
+      "Limited published Y-site compatibility data exist for this specific pair; theoretical pH mismatch (furosemide alkaline vs. labetalol acidic) raises a precipitation concern similar to other alkaline-diluent drugs, but confirmed institutional or literature data are sparse.",
+    recommendedAction: "Treat as limited-data / use with caution: prefer separate lines until institution-specific compatibility testing or updated literature confirms safety.",
+    alternativeAdministration: "Administer sequentially with a flush between doses if a single lumen must be used.",
+    flushRecommendation: "Flush with 0.9% Sodium Chloride between administrations.",
+    ySiteCompatible: "conditional",
+    concentrationDependent: false,
+    careSettings: ["icu", "general"],
+    references: [{ source: "Micromedex", citation: "Labetalol compatibility data (limited)" }],
+    lastReviewed: "2024-12-05",
+  },
+];
+</script>
+<script>
+const HOSPITAL_NAME = "Clinical Pharmacy SRH";
+const ADMIN_STORAGE_KEY = "iv-checker-admin-records-v1";
+const ADMIN_CODE_KEY = "iv-checker-admin-code";
+const DEFAULT_ADMIN_CODE = "pharmacy2026"; // change this for real use
+ 
+const STATUS_LABEL = { compatible: "Compatible", incompatible: "Incompatible", caution: "Use with Caution / Limited Data" };
+const STATUS_ICON = { compatible: "\u2705", incompatible: "\u274C", caution: "\u26A0\uFE0F" };
+const SEVERITY_LABEL = { major: "Major", moderate: "Moderate", minor: "Minor", "n/a": "N/A" };
+const CARE_LABEL = { icu: "ICU", pediatrics: "Pediatrics", neonates: "Neonates", oncology: "Oncology", general: "General Ward" };
+const REFERENCE_SOURCES = ["Trissel's IV Compatibility","King Guide to Parenteral Admixtures","Micromedex","ASHP","Published Study","Institutional Protocol","Other"];
+ 
+function loadRecords() {
+  const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) { /* fall through to seed */ }
   }
-  .capsule-face{
-    position:absolute; inset:0;
-    border-radius:50%;
-    background: conic-gradient(from 90deg, var(--cyan), var(--magenta), var(--gold), var(--mint), var(--cyan));
-    box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(255,255,255,0.25);
+  return SEED_INTERACTIONS.map(r => ({ ...r }));
+}
+function saveRecords(records) {
+  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(records));
+}
+let RECORDS = loadRecords();
+ 
+function normPair(a, b) { return [a.trim().toLowerCase(), b.trim().toLowerCase()].sort(); }
+function findInteraction(a, b) {
+  const [x, y] = normPair(a, b);
+  return RECORDS.find(r => { const [rx, ry] = normPair(r.drugA, r.drugB); return rx === x && ry === y; }) || null;
+}
+function searchDrugs(q, limit) {
+  q = (q || "").trim().toLowerCase();
+  if (!q) return [];
+  return DRUGS.filter(d => d.name.toLowerCase().includes(q) || d.aliases.some(a => a.toLowerCase().includes(q))).slice(0, limit || 8);
+}
+function slugify(s) { return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+function formatDate(iso) {
+  try { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); }
+  catch (e) { return iso; }
+}
+function confidenceTier(score) { return score >= 85 ? "high" : score >= 65 ? "medium" : "low"; }
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+ 
+// ---------- View switching ----------
+function showView(view) {
+  document.getElementById("view-checker").style.display = view === "checker" ? "" : "none";
+  document.getElementById("view-admin").style.display = view === "admin" ? "" : "none";
+  document.getElementById("nav-checker").classList.toggle("active", view === "checker");
+  document.getElementById("nav-admin").classList.toggle("active", view === "admin");
+  if (view === "admin") renderAdmin();
+}
+ 
+// ---------- Autocomplete ----------
+function setupAutocomplete(inputId, suggestId, fieldId) {
+  const input = document.getElementById(inputId);
+  const box = document.getElementById(suggestId);
+  const clearBtn = document.querySelector('[data-clear="' + inputId + '"]');
+  let activeIndex = -1;
+  let currentResults = [];
+ 
+  function renderSuggestions(results) {
+    currentResults = results;
+    activeIndex = -1;
+    if (results.length === 0) { box.classList.remove("open"); box.innerHTML = ""; return; }
+    box.innerHTML = results.map((d, i) =>
+      '<button type="button" data-i="' + i + '"><span class="sugg-name">' + escapeHtml(d.name) + '</span><span class="sugg-meta">' + escapeHtml(d.drugClass) + (d.aliases.length ? " &middot; " + escapeHtml(d.aliases.join(", ")) : "") + '</span></button>'
+    ).join("");
+    box.classList.add("open");
+    box.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        select(currentResults[Number(btn.dataset.i)]);
+      });
+    });
   }
-  .capsule-face.back{ transform: rotateY(180deg); }
-  .capsule-ring{
-    position:absolute; inset:-10px;
-    border-radius:50%;
-    border:2px dashed rgba(255,255,255,0.35);
-    transform: rotateX(75deg);
+  function select(drug) {
+    input.value = drug.name;
+    box.classList.remove("open");
+    clearBtn.style.display = "block";
+    updateGoButton();
   }
-
-  @keyframes spin{
-    from{ transform: rotateY(0deg) rotateX(8deg); }
-    to{ transform: rotateY(360deg) rotateX(8deg); }
+  function updateGoButton() {
+    document.getElementById("go-btn").disabled = !document.getElementById("drugA").value.trim();
   }
-
-  header h1{
-    font-size:clamp(2.2rem, 5vw, 3.4rem);
-    background: linear-gradient(90deg, var(--cyan), var(--mint), var(--gold), var(--magenta));
-    -webkit-background-clip:text;
-    background-clip:text;
-    color:transparent;
-    text-shadow: 0 10px 40px rgba(0,229,255,0.25);
-    letter-spacing:0.5px;
+ 
+  input.addEventListener("input", () => {
+    clearBtn.style.display = input.value ? "block" : "none";
+    renderSuggestions(searchDrugs(input.value));
+    updateGoButton();
+  });
+  input.addEventListener("focus", () => { if (input.value) renderSuggestions(searchDrugs(input.value)); });
+  input.addEventListener("keydown", (e) => {
+    if (!box.classList.contains("open") || currentResults.length === 0) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, currentResults.length - 1); highlight(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); highlight(); }
+    else if (e.key === "Enter" && activeIndex >= 0) { e.preventDefault(); select(currentResults[activeIndex]); }
+    else if (e.key === "Escape") { box.classList.remove("open"); }
+  });
+  function highlight() {
+    box.querySelectorAll("button").forEach((b, i) => b.classList.toggle("active", i === activeIndex));
   }
-  header h3{
-    margin-top:14px;
-    font-weight:500;
-    color:#c9c3f0;
-    font-size:1.15rem;
+  clearBtn.addEventListener("click", () => {
+    input.value = ""; clearBtn.style.display = "none"; box.classList.remove("open"); updateGoButton(); input.focus();
+  });
+  document.addEventListener("mousedown", (e) => {
+    if (!document.getElementById(fieldId).contains(e.target)) box.classList.remove("open");
+  });
+}
+setupAutocomplete("drugA", "suggest-drugA", "field-a");
+setupAutocomplete("drugB", "suggest-drugB", "field-b");
+ 
+// ---------- Filters ----------
+let activeSetting = "all";
+document.querySelectorAll(".pill[data-setting]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pill[data-setting]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeSetting = btn.dataset.setting;
+    if (window.__lastSearch) renderResult(window.__lastSearch);
+  });
+});
+ 
+// ---------- Search ----------
+document.getElementById("search-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const a = document.getElementById("drugA").value.trim();
+  const b = document.getElementById("drugB").value.trim();
+  if (!a) return;
+ 
+  if (!b) {
+    window.__lastSearch = { mode: "single" };
+    renderResult(window.__lastSearch);
+    return;
   }
-
-  /* ---------- Nav ---------- */
-  nav{
-    position:sticky; top:0; z-index:10;
-    display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
-    padding:16px 10px;
-    background: rgba(15,8,40,0.55);
-    backdrop-filter: blur(14px);
-    border-bottom:1px solid rgba(255,255,255,
-
+  const record = findInteraction(a, b);
+  window.__lastSearch = record ? { mode: "found", record } : { mode: "not-found" };
+  renderResult(window.__lastSearch);
+});
+ 
+function emptyState(iconSvg, title, desc) {
+  return '<div class="empty-state"><div class="empty-icon">' + iconSvg + '</div><p class="empty-title">' + escapeHtml(title) + '</p><p class="empty-desc">' + escapeHtml(desc) + '</p></div>';
+}
+const WARN_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+ 
+function renderResult(search) {
+  const area = document.getElementById("result-area");
+  if (search.mode === "single") {
+    area.innerHTML = emptyState(WARN_ICON, "Single-drug search", "Enter a second drug to check a specific pair for physical, chemical, and therapeutic compatibility.");
+    return;
+  }
+  if (search.mode === "not-found") {
+    area.innerHTML = emptyState(WARN_ICON, "No record on file for this pair", "This combination isn't in the database yet. Treat as limited data / use with caution, consult a pharmacist, and consider adding it via the Admin panel once verified.");
+    return;
+  }
+  const record = search.record;
+  if (activeSetting !== "all" && !record.careSettings.includes(activeSetting)) {
+    area.innerHTML = emptyState(WARN_ICON, "No specific guidance filed for " + CARE_LABEL[activeSetting], "A record exists for this pair but has no notes for the selected care setting. Clear the filter to see the general record, and confirm with a pharmacist for this population.");
+    return;
+  }
+  area.innerHTML = renderCard(record);
+  // Attach handlers by closure reference instead of inlining JSON into HTML
+  // attributes, since clinical text can contain apostrophes that would break
+  // a single-quoted onclick attribute.
+  const pdfBtn = document.getElementById("pdf-btn");
+  if (pdfBtn) pdfBtn.addEventListener("click", () => generatePdf(record));
+}
+ 
+function renderCard(r) {
+  const status = r.status;
+  const gaugeColor = confidenceTier(r.confidenceScore) === "high" ? "#1B998B" : confidenceTier(r.confidenceScore) === "medium" ? "#B45309" : "#B91C1C";
+  const circumference = 2 * Math.PI * 30;
+  const offset = circumference * (1 - r.confidenceScore / 100);
+ 
+  const ySiteText = typeof r.ySiteCompatible === "boolean"
+    ? (r.ySiteCompatible ? "Compatible" : "Not compatible")
+    : r.ySiteCompatible === "not-applicable" ? "Not applicable" : "Conditional / verify concentration";
+ 
+  const concNotes = (r.concentrationNotes || []).map(n =>
+    '<li><span style="font-weight:500;color:var(--ink)">' + escapeHtml(n.drug) + '</span> (' + escapeHtml(n.concentration) + '): ' + escapeHtml(n.note) + '</li>'
+  ).join("");
+ 
+  const settingsTags = r.careSettings.map(s => '<span class="tag">' + CARE_LABEL[s] + '</span>').join("");
+  const settingNotes = r.careSettingNotes ? Object.entries(r.careSettingNotes).filter(([,v]) => v).map(([k,v]) =>
+    '<li><span style="font-weight:500;color:var(--ink)">' + CARE_LABEL[k] + ':</span> ' + escapeHtml(v) + '</li>'
+  ).join("") : "";
+ 
+  const refs = r.references.map(ref =>
+    '<li><span class="ref-source">' + escapeHtml(ref.source) + '</span>' + (ref.year ? " (" + ref.year + ")" : "") + ' &mdash; ' + escapeHtml(ref.citation) + '</li>'
+  ).join("");
+ 
+  return '' +
+  '<div class="card print-card" id="result-card">' +
+    '<div class="card-bar ' + status + '"></div>' +
+    '<div class="card-head ' + status + '">' +
+      '<div>' +
+        '<p class="card-head-kicker">Compatibility Result</p>' +
+        '<h2 class="card-title">' + escapeHtml(r.drugA) + ' <span class="plus">+</span> ' + escapeHtml(r.drugB) + '</h2>' +
+        '<p class="card-status-line ' + status + '">' + STATUS_ICON[status] + ' ' + STATUS_LABEL[status] +
+          '<span class="extra">&nbsp;&middot; Severity: ' + SEVERITY_LABEL[r.severity] + ' &middot; Type: ' + (r.type.charAt(0).toUpperCase() + r.type.slice(1)) + '</span></p>' +
+      '</div>' +
+      '<div class="card-actions">' +
+        '<div class="gauge-wrap">' +
+          '<svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">' +
+            '<circle cx="38" cy="38" r="30" fill="none" stroke="#E1E7EB" stroke-width="7"/>' +
+            '<circle cx="38" cy="38" r="30" fill="none" stroke="' + gaugeColor + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"/>' +
+          '</svg>' +
+          '<div style="margin-top:-52px;text-align:center"><span class="gauge-pct">' + r.confidenceScore + '%</span></div>' +
+          '<span class="gauge-label" style="margin-top:24px">Evidence</span>' +
+        '</div>' +
+        '<div class="btn-group no-print">' +
+          '<button class="btn-solid" id="pdf-btn" type="button">Save PDF</button>' +
+          '<button class="btn-outline" onclick="window.print()" type="button">Print</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card-body">' +
+      '<div>' +
+        '<div class="detail-row"><p class="detail-label">Mechanism of Incompatibility</p><p class="detail-value">' + escapeHtml(r.mechanism) + '</p></div>' +
+        '<div class="detail-row"><p class="detail-label">Recommended Action</p><p class="detail-value">' + escapeHtml(r.recommendedAction) + '</p></div>' +
+        '<div class="detail-row"><p class="detail-label">Alternative Administration</p><p class="detail-value">' + escapeHtml(r.alternativeAdministration) + '</p></div>' +
+        '<div class="detail-row"><p class="detail-label">Flush Recommendation</p><p class="detail-value">' + escapeHtml(r.flushRecommendation) + '</p></div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="detail-row"><p class="detail-label">Y-Site Compatibility</p><p class="detail-value">' + ySiteText + '</p>' + (r.ySiteNotes ? '<p class="detail-sub">' + escapeHtml(r.ySiteNotes) + '</p>' : '') + '</div>' +
+        '<div class="detail-row"><p class="detail-label">Concentration-Dependent</p><p class="detail-value">' + (r.concentrationDependent ? "Yes" : "No") + '</p>' + (concNotes ? '<ul class="note-list">' + concNotes + '</ul>' : '') + '</div>' +
+        '<div class="detail-row"><p class="detail-label">Applicable Care Settings</p><div class="tag-list">' + settingsTags + '</div>' + (settingNotes ? '<ul class="note-list">' + settingNotes + '</ul>' : '') + '</div>' +
+        '<div class="detail-row"><p class="detail-label">References</p><ul class="ref-list">' + refs + '</ul></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card-foot">Last reviewed ' + formatDate(r.lastReviewed) + (r.reviewedBy ? " by " + escapeHtml(r.reviewedBy) : "") + '</div>' +
+  '</div>';
+}
+ 
+// ---------- PDF export ----------
+function generatePdf(r) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const marginX = 48; let y = 56;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const maxWidth = pageWidth - marginX * 2;
+  const line = (h) => { y += (h || 16); };
+  const heading = (text, size) => {
+    size = size || 11;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(size); doc.setTextColor(11, 61, 92);
+    doc.text(text, marginX, y); line(size + 6);
+  };
+  const body = (text, size) => {
+    size = size || 10;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(size); doc.setTextColor(30, 41, 51);
+    const wrapped = doc.splitTextToSize(text || "-", maxWidth);
+    doc.text(wrapped, marginX, y); line(wrapped.length * (size + 3) + 6);
+  };
+  const ensureSpace = (needed) => {
+    if (y + (needed || 60) > doc.internal.pageSize.getHeight() - 48) { doc.addPage(); y = 56; }
+  };
+ 
+  doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(11, 61, 92);
+  doc.text(HOSPITAL_NAME + " - IV Compatibility Report", marginX, y); line(20);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 100, 110);
+  doc.text("Generated " + new Date().toLocaleString(), marginX, y); line(18);
+  doc.setDrawColor(225, 231, 235); doc.line(marginX, y, pageWidth - marginX, y); line(20);
+ 
+  heading(r.drugA + " + " + r.drugB, 14);
+  body("Status: " + STATUS_LABEL[r.status] + "   |   Confidence: " + r.confidenceScore + "%   |   Severity: " + SEVERITY_LABEL[r.severity]);
+  body("Type: " + r.type + "   |   Y-site compatible: " + String(r.ySiteCompatible) + "   |   Concentration-dependent: " + (r.concentrationDependent ? "Yes" : "No"));
+  line(4);
+ 
+  ensureSpace(); heading("Mechanism of Incompatibility"); body(r.mechanism);
+  ensureSpace(); heading("Recommended Action"); body(r.recommendedAction);
+  ensureSpace(); heading("Alternative Administration"); body(r.alternativeAdministration);
+  ensureSpace(); heading("Flush Recommendation"); body(r.flushRecommendation);
+ 
+  if (r.ySiteNotes) { ensureSpace(); heading("Y-Site Notes"); body(r.ySiteNotes); }
+  if (r.concentrationNotes && r.concentrationNotes.length) {
+    ensureSpace(); heading("Concentration-Dependent Notes");
+    r.concentrationNotes.forEach(n => body("- " + n.drug + " (" + n.concentration + "): " + n.note));
+  }
+ 
+  ensureSpace(); heading("Applicable Care Settings");
+  body(r.careSettings.map(c => CARE_LABEL[c]).join(", ") || "General");
+  if (r.careSettingNotes) {
+    Object.entries(r.careSettingNotes).forEach(([k, v]) => { if (v) body(CARE_LABEL[k] + ": " + v, 9); });
+  }
+ 
+  ensureSpace(); heading("References");
+  r.references.forEach(ref => body("- " + ref.source + (ref.year ? " (" + ref.year + ")" : "") + ": " + ref.citation, 9));
+ 
+  ensureSpace(); heading("Review Information");
+  body("Last reviewed: " + formatDate(r.lastReviewed) + (r.reviewedBy ? " by " + r.reviewedBy : ""), 9);
+ 
+  line(24); ensureSpace();
+  doc.setDrawColor(225, 231, 235); doc.line(marginX, y, pageWidth - marginX, y); line(14);
+  doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(120, 130, 140);
+  const disclaimer = doc.splitTextToSize(
+    "This report is a clinical decision-support reference and does not replace pharmacist judgment, your institution's approved protocols, or primary literature (Trissel's, King Guide, Micromedex, ASHP). Verify high-risk combinations before administration.",
+    maxWidth
+  );
+  doc.text(disclaimer, marginX, y);
+ 
+  doc.save(("IV-Compatibility_" + r.drugA + "_" + r.drugB + ".pdf").replace(/\s+/g, "-"));
+}
+</script>
+<script>
+// ---------- Admin ----------
+function getStoredAdminCode() { return sessionStorage.getItem(ADMIN_CODE_KEY); }
+function isAdminUnlocked() { return !!getStoredAdminCode(); }
+ 
+let adminEditingId = null;
+let adminCreating = false;
+ 
+function renderAdmin() {
+  const el = document.getElementById("view-admin");
+  if (!isAdminUnlocked()) {
+    el.innerHTML =
+      '<div class="admin-gate">' +
+        '<div class="lock-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>' +
+        '<h1>Admin access</h1>' +
+        '<p>Enter the pharmacy admin access code to manage the compatibility database.<br><span class="mono" style="font-size:11px">Default demo code: ' + DEFAULT_ADMIN_CODE + '</span></p>' +
+        '<form id="admin-unlock-form">' +
+          '<input type="password" id="admin-code-input" placeholder="Access code">' +
+          '<button type="submit">Unlock admin panel</button>' +
+        '</form>' +
+      '</div>';
+    document.getElementById("admin-unlock-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const code = document.getElementById("admin-code-input").value;
+      if (code !== DEFAULT_ADMIN_CODE) { alert("Incorrect access code."); return; }
+      sessionStorage.setItem(ADMIN_CODE_KEY, code);
+      adminEditingId = null; adminCreating = false;
+      renderAdmin();
+    });
+    return;
+  }
+ 
+  let formHtml = "";
+  if (adminCreating || adminEditingId) {
+    const record = adminEditingId ? RECORDS.find(r => r.id === adminEditingId) : null;
+    formHtml = renderAdminForm(record);
+  }
+ 
+  el.innerHTML =
+    '<div class="admin-header">' +
+      '<div><p class="kicker">Admin panel</p><h1 style="font-size:24px;margin:4px 0 0;">Compatibility database</h1></div>' +
+      (formHtml ? '' : '<button class="go-btn" style="height:auto;padding:11px 18px;" onclick="adminCreating=true; renderAdmin();">+ New record</button>') +
+    '</div>' +
+    formHtml +
+    (formHtml ? '' : renderAdminTable());
+ 
+  if (formHtml) attachAdminFormHandlers();
+  else attachAdminTableHandlers();
+}
+ 
+function renderAdminTable() {
+  if (RECORDS.length === 0) {
+    return '<p style="text-align:center;color:var(--muted);background:white;border:1px dashed var(--border);border-radius:10px;padding:32px;">No records yet. Create the first one above.</p>';
+  }
+  const rows = RECORDS.map(r =>
+    '<tr>' +
+      '<td style="font-weight:500;">' + escapeHtml(r.drugA) + ' + ' + escapeHtml(r.drugB) + '</td>' +
+      '<td>' + STATUS_ICON[r.status] + ' ' + STATUS_LABEL[r.status] + '</td>' +
+      '<td class="mono">' + r.confidenceScore + '%</td>' +
+      '<td style="text-transform:capitalize;">' + r.severity + '</td>' +
+      '<td style="color:var(--muted);">' + formatDate(r.lastReviewed) + '</td>' +
+      '<td style="text-align:right;">' +
+        '<button class="icon-btn" data-edit="' + r.id + '" title="Edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>' +
+        '<button class="icon-btn danger" data-delete="' + r.id + '" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>' +
+      '</td>' +
+    '</tr>'
+  ).join("");
+  return '<table class="admin-table"><thead><tr><th>Pair</th><th>Status</th><th>Confidence</th><th>Severity</th><th>Reviewed</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+ 
+function attachAdminTableHandlers() {
+  document.querySelectorAll("[data-edit]").forEach(btn => btn.addEventListener("click", () => {
+    adminEditingId = btn.dataset.edit; adminCreating = false; renderAdmin();
+  }));
+  document.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", () => {
+    const r = RECORDS.find(x => x.id === btn.dataset.delete);
+    if (!r) return;
+    if (!confirm("Delete the record for " + r.drugA + " + " + r.drugB + "?")) return;
+    RECORDS = RECORDS.filter(x => x.id !== r.id);
+    saveRecords(RECORDS);
+    renderAdmin();
+  }));
+}
+ 
+function renderAdminForm(record) {
+  const f = record || {
+    drugA: "", drugB: "", status: "caution", confidenceScore: 70, type: "physical", severity: "moderate",
+    mechanism: "", recommendedAction: "", alternativeAdministration: "", flushRecommendation: "",
+    ySiteCompatible: "conditional", ySiteNotes: "", concentrationDependent: false,
+    careSettings: [], references: [{ source: "Institutional Protocol", citation: "" }],
+    lastReviewed: new Date().toISOString().slice(0, 10), reviewedBy: ""
+  };
+  const careOptions = ["icu", "pediatrics", "neonates", "oncology", "general"];
+ 
+  const refsHtml = f.references.map((ref, i) =>
+    '<div class="ref-row" data-ref-row="' + i + '">' +
+      '<select data-ref-source="' + i + '">' + REFERENCE_SOURCES.map(s => '<option value="' + s + '"' + (s === ref.source ? " selected" : "") + '>' + s + '</option>').join("") + '</select>' +
+      '<input data-ref-citation="' + i + '" placeholder="Citation detail" value="' + escapeHtml(ref.citation) + '">' +
+      '<button type="button" class="icon-btn danger" data-ref-remove="' + i + '">&times;</button>' +
+    '</div>'
+  ).join("");
+ 
+  return '<form class="form-panel" id="admin-record-form">' +
+    '<div class="form-grid">' +
+      '<div><label>Drug A</label><input required id="f-drugA" value="' + escapeHtml(f.drugA) + '"></div>' +
+      '<div><label>Drug B</label><input required id="f-drugB" value="' + escapeHtml(f.drugB) + '"></div>' +
+    '</div>' +
+    '<div class="form-grid cols-4">' +
+      '<div><label>Status</label><select id="f-status">' +
+        ['compatible','incompatible','caution'].map(s => '<option value="' + s + '"' + (s === f.status ? " selected" : "") + '>' + STATUS_LABEL[s] + '</option>').join('') +
+      '</select></div>' +
+      '<div><label>Confidence %</label><input type="number" min="0" max="100" id="f-confidence" value="' + f.confidenceScore + '"></div>' +
+      '<div><label>Type</label><select id="f-type">' +
+        ['physical','chemical','therapeutic','unknown'].map(s => '<option value="' + s + '"' + (s === f.type ? " selected" : "") + '>' + s.charAt(0).toUpperCase()+s.slice(1) + '</option>').join('') +
+      '</select></div>' +
+      '<div><label>Severity</label><select id="f-severity">' +
+        ['major','moderate','minor','n/a'].map(s => '<option value="' + s + '"' + (s === f.severity ? " selected" : "") + '>' + SEVERITY_LABEL[s] + '</option>').join('') +
+      '</select></div>' +
+    '</div>' +
+    '<div class="field-block"><label>Mechanism of Incompatibility</label><textarea required id="f-mechanism" rows="2">' + escapeHtml(f.mechanism) + '</textarea></div>' +
+    '<div class="field-block"><label>Recommended Action</label><textarea required id="f-action" rows="2">' + escapeHtml(f.recommendedAction) + '</textarea></div>' +
+    '<div class="field-block"><label>Alternative Administration</label><textarea required id="f-altadmin" rows="2">' + escapeHtml(f.alternativeAdministration) + '</textarea></div>' +
+    '<div class="field-block"><label>Flush Recommendation</label><textarea required id="f-flush" rows="2">' + escapeHtml(f.flushRecommendation) + '</textarea></div>' +
+    '<div class="form-grid" style="grid-template-columns: 1fr 2fr;">' +
+      '<div><label>Y-site compatible</label><select id="f-ysite">' +
+        [["true","Compatible"],["false","Not compatible"],["conditional","Conditional"],["not-applicable","Not applicable"]].map(([v,l]) => '<option value="' + v + '"' + (String(f.ySiteCompatible) === v ? " selected" : "") + '>' + l + '</option>').join('') +
+      '</select></div>' +
+      '<div><label>Y-site notes (optional)</label><input id="f-ysitenotes" value="' + escapeHtml(f.ySiteNotes || "") + '"></div>' +
+    '</div>' +
+    '<div class="checkbox-row"><input type="checkbox" id="f-concdep"' + (f.concentrationDependent ? " checked" : "") + '><label for="f-concdep" style="margin:0;text-transform:none;font-weight:400;color:var(--ink);">Compatibility is concentration-dependent</label></div>' +
+    '<div class="field-block"><label>Applicable care settings</label><div class="tag-list" id="f-caresettings">' +
+      careOptions.map(o => '<button type="button" class="pill' + (f.careSettings.includes(o) ? ' active' : '') + '" data-care="' + o + '">' + o + '</button>').join('') +
+    '</div></div>' +
+    '<div class="field-block">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;"><label style="margin:0;">References</label><button type="button" class="add-link" id="f-add-ref">+ Add reference</button></div>' +
+      '<div id="f-refs">' + refsHtml + '</div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+      '<div><label>Last reviewed</label><input type="date" id="f-lastreviewed" value="' + f.lastReviewed + '"></div>' +
+      '<div><label>Reviewed by</label><input id="f-reviewedby" value="' + escapeHtml(f.reviewedBy || "") + '"></div>' +
+    '</div>' +
+    '<p id="f-error" style="color:var(--incompatible);font-size:13px;display:none;"></p>' +
+    '<div class="form-footer">' +
+      '<button type="submit" class="go-btn" style="height:auto;padding:11px 20px;">' + (record ? "Save changes" : "Create record") + '</button>' +
+      '<button type="button" class="link-btn" id="f-cancel">Cancel</button>' +
+    '</div>' +
+  '</form>';
+}
+ 
+function attachAdminFormHandlers() {
+  let refs = (adminEditingId ? RECORDS.find(r => r.id === adminEditingId).references : null) || [{ source: "Institutional Protocol", citation: "" }];
+  let careSettings = (adminEditingId ? [...RECORDS.find(r => r.id === adminEditingId).careSettings] : []);
+ 
+  function syncRefsFromDom() {
+    refs = refs.map((ref, i) => ({
+      source: document.querySelector('[data-ref-source="' + i + '"]').value,
+      citation: document.querySelector('[data-ref-citation="' + i + '"]').value
+    }));
+  }
+ 
+  document.querySelectorAll("[data-care]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const setting = btn.dataset.care;
+      if (careSettings.includes(setting)) careSettings = careSettings.filter(s => s !== setting);
+      else careSettings.push(setting);
+      btn.classList.toggle("active");
+    });
+  });
+ 
+  document.getElementById("f-add-ref").addEventListener("click", () => {
+    syncRefsFromDom();
+    refs.push({ source: "Other", citation: "" });
+    document.getElementById("f-refs").innerHTML = refs.map((ref, i) =>
+      '<div class="ref-row" data-ref-row="' + i + '">' +
+        '<select data-ref-source="' + i + '">' + REFERENCE_SOURCES.map(s => '<option value="' + s + '"' + (s === ref.source ? " selected" : "") + '>' + s + '</option>').join("") + '</select>' +
+        '<input data-ref-citation="' + i + '" placeholder="Citation detail" value="' + escapeHtml(ref.citation) + '">' +
+        '<button type="button" class="icon-btn danger" data-ref-remove="' + i + '">&times;</button>' +
+      '</div>'
+    ).join("");
+    attachRefRemoveHandlers();
+  });
+ 
+  function attachRefRemoveHandlers() {
+    document.querySelectorAll("[data-ref-remove]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        syncRefsFromDom();
+        refs.splice(Number(btn.dataset.refRemove), 1);
+        document.getElementById("f-refs").innerHTML = refs.map((ref, i) =>
+          '<div class="ref-row" data-ref-row="' + i + '">' +
+            '<select data-ref-source="' + i + '">' + REFERENCE_SOURCES.map(s => '<option value="' + s + '"' + (s === ref.source ? " selected" : "") + '>' + s + '</option>').join("") + '</select>' +
+            '<input data-ref-citation="' + i + '" placeholder="Citation detail" value="' + escapeHtml(ref.citation) + '">' +
+            '<button type="button" class="icon-btn danger" data-ref-remove="' + i + '">&times;</button>' +
+          '</div>'
+        ).join("");
+        attachRefRemoveHandlers();
+      });
+    });
+  }
+  attachRefRemoveHandlers();
+ 
+  document.getElementById("f-cancel").addEventListener("click", () => {
+    adminCreating = false; adminEditingId = null; renderAdmin();
+  });
+ 
+  document.getElementById("admin-record-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    syncRefsFromDom();
+    const drugA = document.getElementById("f-drugA").value.trim();
+    const drugB = document.getElementById("f-drugB").value.trim();
+    if (!drugA || !drugB) return;
+ 
+    const ysiteVal = document.getElementById("f-ysite").value;
+    const patch = {
+      drugA, drugB,
+      status: document.getElementById("f-status").value,
+      confidenceScore: Number(document.getElementById("f-confidence").value),
+      type: document.getElementById("f-type").value,
+      severity: document.getElementById("f-severity").value,
+      mechanism: document.getElementById("f-mechanism").value,
+      recommendedAction: document.getElementById("f-action").value,
+      alternativeAdministration: document.getElementById("f-altadmin").value,
+      flushRecommendation: document.getElementById("f-flush").value,
+      ySiteCompatible: ysiteVal === "true" ? true : ysiteVal === "false" ? false : ysiteVal,
+      ySiteNotes: document.getElementById("f-ysitenotes").value,
+      concentrationDependent: document.getElementById("f-concdep").checked,
+      careSettings: careSettings,
+      references: refs.filter(r => r.citation.trim()),
+      lastReviewed: document.getElementById("f-lastreviewed").value,
+      reviewedBy: document.getElementById("f-reviewedby").value,
+    };
+ 
+    if (adminEditingId) {
+      const idx = RECORDS.findIndex(r => r.id === adminEditingId);
+      RECORDS[idx] = { ...RECORDS[idx], ...patch };
+    } else {
+      const id = slugify(drugA) + "_" + slugify(drugB) + "_" + Date.now();
+      RECORDS.unshift({ id, ...patch });
+    }
+    saveRecords(RECORDS);
+    adminCreating = false; adminEditingId = null;
+    renderAdmin();
+  });
+}
+</script>
 </body>
 </html>
-   
